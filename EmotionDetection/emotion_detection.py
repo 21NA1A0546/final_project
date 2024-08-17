@@ -2,36 +2,36 @@ import requests
 import json
 
 def emotion_detector(text_to_analyze):
-    # Define the URL for the emotion detection API
+    # Check if the input text is empty
+    if not text_to_analyze.strip():
+        return {
+            'anger': None,
+            'disgust': None,
+            'fear': None,
+            'joy': None,
+            'sadness': None,
+            'dominant_emotion': None
+        }
+
     url = 'https://sn-watson-emotion.labs.skills.network/v1/watson.runtime.nlp.v1/NlpService/EmotionPredict'
-    
-    # Set the headers with the required model ID for the API
     headers = {"grpc-metadata-mm-model-id": "emotion_aggregated-workflow_lang_en_stock"}
-    
-    # Create the payload with the text to be analyzed
-    payload = {"raw_document": {"text": text_to_analyze}}
+    data = json.dumps({"raw_document": {"text": text_to_analyze}})
     
     try:
-        # Make a POST request to the API with the payload and headers
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, headers=headers, data=data)
+        response_dict = response.json()
         
-        # Check if the request was successful
-        if response.status_code != 200:
-            print(f"Error: API request failed with status code {response.status_code}")
-            return None
+        # Check if the status code indicates an error
+        if response.status_code == 400:
+            return {
+                'anger': None,
+                'disgust': None,
+                'fear': None,
+                'joy': None,
+                'sadness': None,
+                'dominant_emotion': None
+            }
         
-        # Convert the response text into a dictionary
-        response_dict = json.loads(response.text)
-        
-        # Print the response for debugging
-        print("API Response:", response_dict)
-        
-        # Ensure the expected structure is present in the response
-        if 'emotionPredictions' not in response_dict or not response_dict['emotionPredictions']:
-            print("Error: 'emotionPredictions' key not found or empty in the response")
-            return None
-        
-        # Extract the emotions and their scores from the first item in the emotionPredictions list
         emotions = response_dict['emotionPredictions'][0]['emotion']
         anger_score = emotions.get('anger', 0)
         disgust_score = emotions.get('disgust', 0)
@@ -39,8 +39,8 @@ def emotion_detector(text_to_analyze):
         joy_score = emotions.get('joy', 0)
         sadness_score = emotions.get('sadness', 0)
         
-        # Determine the dominant emotion based on the highest score
-        emotion_scores = {
+        # Determine the dominant emotion
+        scores = {
             'anger': anger_score,
             'disgust': disgust_score,
             'fear': fear_score,
@@ -48,9 +48,8 @@ def emotion_detector(text_to_analyze):
             'sadness': sadness_score
         }
         
-        dominant_emotion = max(emotion_scores, key=emotion_scores.get)
+        dominant_emotion = max(scores, key=scores.get)
         
-        # Return the formatted output
         return {
             'anger': anger_score,
             'disgust': disgust_score,
@@ -59,8 +58,14 @@ def emotion_detector(text_to_analyze):
             'sadness': sadness_score,
             'dominant_emotion': dominant_emotion
         }
-    
-    except requests.exceptions.RequestException as e:
-        print(f"Error: Failed to connect to the API - {e}")
-        return None
 
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return {
+            'anger': None,
+            'disgust': None,
+            'fear': None,
+            'joy': None,
+            'sadness': None,
+            'dominant_emotion': None
+        }
